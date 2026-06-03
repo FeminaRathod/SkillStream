@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -10,10 +13,7 @@ const profileRoute = require('./routes/Profile')
 const ratingRoute = require('./routes/Rating');
 const { cloudinaryConnect } = require('./config/couldinary');
 const fileUpload = require('express-fileupload');
-const dotenv = require('dotenv');
 const cors = require('cors');
-
-dotenv.config();
 
 app.use(express.json());
 app.use(require('cookie-parser')());

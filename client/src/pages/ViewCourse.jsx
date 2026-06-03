@@ -10,6 +10,7 @@ import {
 } from "../redux/slices/viewCourseSlice"
 import VideoDetailsSidebar from "../commponents/core/ViewCourse/VideoDetailsSidebar"
 import CourseReviewModal from "../commponents/core/ViewCourse/CourseReviewModal"
+import CourseQA from "../commponents/core/ViewCourse/CourseQA"
 import { AiOutlineMenu } from "react-icons/ai"
 
 export default function ViewCourse() {
@@ -105,6 +106,9 @@ export default function ViewCourse() {
             <div className="relative w-full rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl">
               <Outlet />
             </div>
+
+            {/* Course Q&A Section */}
+            <CourseQA courseId={courseId} />
 
             {/* Footer space */}
             <div className="mt-4 sm:mt-6 md:mt-8 pb-6 sm:pb-10">

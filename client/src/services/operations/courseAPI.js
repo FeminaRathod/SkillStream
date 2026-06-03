@@ -3,7 +3,7 @@ import { apiConnector } from "../../../services/apiConnector";
 import { instructorEndpoints, courseEndpoints, ratingsEndpoints } from "../../../services/apis";
 
 const { GET_INSTRUCTOR_STATS_API, GET_INSTRUCTOR_COURSES_API } = instructorEndpoints;
-const { GET_FULL_COURSE_DETAILS_AUTHENTICATED, LECTURE_COMPLETION_API } = courseEndpoints;
+const { GET_FULL_COURSE_DETAILS_AUTHENTICATED, LECTURE_COMPLETION_API, COURSE_QA_API } = courseEndpoints;
 
 // Get instructor statistics
 export const getInstructorStats = async (token) => {
@@ -166,3 +166,32 @@ export const getAllRatings = async () => {
     }
     return result
 }
+
+// Ask a question about the course using AI
+export const askCourseQuestion = async (courseId, question, token) => {
+    const toastId = toast.loading("Getting answer...");
+    let result = null;
+    try {
+        const response = await apiConnector(
+            "POST",
+            COURSE_QA_API,
+            { courseId, question },
+            {
+                Authorization: `Bearer ${token}`,
+            }
+        );
+        console.log("COURSE_QA_API RESPONSE............", response);
+        
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Failed to get answer");
+        }
+        
+        result = response?.data?.data;
+        toast.success("Answer generated!");
+    } catch (error) {
+        console.log("COURSE_QA_API ERROR............", error);
+        toast.error(error?.response?.data?.message || error.message || "Failed to get answer");
+    }
+    toast.dismiss(toastId);
+    return result;
+};

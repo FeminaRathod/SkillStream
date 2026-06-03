@@ -64,6 +64,16 @@ const CourseInformationForm = ({ courseInfo, setCourseInfo, setCurrentStep, save
     [setValue, setCourseInfo]
   );
 
+  const handlePdfChange = (file) => {
+    setCourseInfo((prev) => ({
+      ...prev,
+      coursePdf: file,
+    }));
+    if (errors.coursePdf) {
+      setErrors((prev) => ({ ...prev, coursePdf: '' }));
+    }
+  };
+
   const handleThumbnailChange = (file) => {
     setCourseInfo((prev) => ({
       ...prev,
@@ -239,14 +249,49 @@ const CourseInformationForm = ({ courseInfo, setCourseInfo, setCurrentStep, save
         getValues={getValues}
       />
 
+      {/* PDF Upload (Optional) */}
+      <div>
+        <label className="block text-richblack-5 text-sm font-medium mb-2">
+          Course Content PDF <span className="text-caribbeangreen-300">(Optional)</span>
+        </label>
+        <div className="border-2 border-dashed border-richblack-600 rounded-lg p-8 text-center hover:border-caribbeangreen-300 transition-colors cursor-pointer bg-richblack-700/20"
+          onClick={() => document.getElementById('pdf-input').click()}
+        >
+          <input
+            type="file"
+            id="pdf-input"
+            accept=".pdf"
+            onChange={(e) => handlePdfChange(e.target.files?.[0] || null)}
+            className="hidden"
+          />
+          <div className="flex flex-col items-center gap-2">
+            <svg className="w-8 h-8 text-richblack-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <p className="text-richblack-5 font-medium">
+              {courseInfo.coursePdf ? courseInfo.coursePdf.name : 'Upload PDF'}
+            </p>
+            <p className="text-richblack-400 text-sm">
+              {courseInfo.coursePdf ? 'Click to change' : 'Click to upload or drag & drop'}
+            </p>
+          </div>
+        </div>
+        <p className="text-richblack-400 text-xs mt-2">PDF files will be used to create an AI knowledge base for student Q&A</p>
+      </div>
+
       {/* Thumbnail Upload */}
-      <ImageUpload
-        thumbnail={courseInfo.thumbnail}
-        setThumbnail={handleThumbnailChange}
-      />
-      {errors.thumbnail && (
-        <p className="text-pink-200 text-sm -mt-4">{errors.thumbnail}</p>
-      )}
+      <div>
+        <label htmlFor="thumbnail" className="block text-richblack-5 text-sm font-medium mb-2">
+          Course Thumbnail <span className="text-pink-200">*</span>
+        </label>
+        <ImageUpload
+          thumbnail={courseInfo.thumbnail}
+          setThumbnail={handleThumbnailChange}
+        />
+        {errors.thumbnail && (
+          <p className="text-pink-200 text-sm -mt-4">{errors.thumbnail}</p>
+        )}
+      </div>
 
       {/* Navigation Buttons */}
       <div className="flex justify-end pt-6 border-t border-richblack-700">

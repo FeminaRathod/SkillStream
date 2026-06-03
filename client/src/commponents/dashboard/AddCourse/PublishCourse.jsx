@@ -83,6 +83,11 @@ const PublishCourse = ({
           if (courseInfo.thumbnail instanceof File) {
               formData.append('thumbnailImage', courseInfo.thumbnail);
           }
+          
+          // Add PDF if provided and is a new file
+          if (courseInfo.coursePdf instanceof File) {
+            formData.append('coursePdf', courseInfo.coursePdf);
+          }
 
           const courseResponse = await apiConnector(
             'POST', 
@@ -169,6 +174,11 @@ const PublishCourse = ({
           formData.append('tag', JSON.stringify(courseInfo.tags));
           formData.append('thumbnailImage', courseInfo.thumbnail);
           formData.append('status', publishSettings.status);
+          
+          // Add PDF if provided
+          if (courseInfo.coursePdf instanceof File) {
+            formData.append('coursePdf', courseInfo.coursePdf);
+          }
 
           const courseResponse = await apiConnector(
             'POST',

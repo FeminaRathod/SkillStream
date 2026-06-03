@@ -23,6 +23,7 @@ const AddCourse = () => {
     category: '',
     tags: [],
     thumbnail: null,
+    coursePdf: null,
   });
   const [courseBuilder, setCourseBuilder] = useState({
     sections: [],
@@ -97,6 +98,7 @@ const AddCourse = () => {
         category: '',
         tags: [],
         thumbnail: null,
+        coursePdf: null,
       });
       setCourseBuilder({ sections: [] });
       setPublishSettings({ status: 'Draft' });
@@ -128,6 +130,7 @@ const AddCourse = () => {
                 tags: course.tag, // API might return 'tag' or 'tags'
                 thumbnail: course.thumbnail,
                 instructions: course.instructions,
+                coursePdf: course.contentPdfUrl ? { name: course.contentPdfName || 'Course PDF', url: course.contentPdfUrl } : null,
              });
              setCourseBuilder({
                 sections: course.courseContent.map(section => ({

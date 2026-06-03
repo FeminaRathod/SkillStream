@@ -6,7 +6,7 @@ const imageUploder = require('../utils/imageUploader');
 const CourseProgress = require("../models/CourseProgress");
 const { convertSecondsToDuration } = require("../utils/secToDuration");
 const Subsection = require('../models/SubSection'); // Standardized to capital S
-
+const { processCoursePdfUpload, answerCourseQuestion } = require('../utils/aiCourseEmbeddings');
 const CreateCourse = async (req, resp) => {
     try {
         const { name, description, whatYouWillLearn, catagory, tag: _tag, price, status } = req.body;
@@ -19,11 +19,21 @@ const CreateCourse = async (req, resp) => {
         }
 
         const thumbnail = req.files ? req.files.thumbnailImage : null;
+        const coursePdf = req.files ? req.files.coursePdf : null;
+
         if (!thumbnail) {
             return resp.status(422).json({
                 message: "Thumbnail image is required",
                 success: false,
             })
+        }
+
+        let contentPdfUrl = null;
+        let contentPdfName = null;
+        if (coursePdf) {
+            contentPdfName = coursePdf.name;
+            const pdfUpload = await imageUploder(coursePdf.tempFilePath, process.env.COURSE_PDF_FOLDER_NAME || process.env.COURSE_THUMBNAIL_FOLDER_NAME);
+            contentPdfUrl = pdfUpload.secure_url;
         }
 
         const validcatagory = await Catagory.findById(catagory);
@@ -42,7 +52,7 @@ const CreateCourse = async (req, resp) => {
             try { tag = JSON.parse(_tag); } catch (e) { tag = [_tag]; }
         }
 
-        const newCourse = await Course.create({
+        const courseDoc = new Course({
             courseName: name,
             courseDescription: description,
             instructor: instructorId,
@@ -52,7 +62,27 @@ const CreateCourse = async (req, resp) => {
             thumbnail: thumbnailImage.secure_url,
             price: price,
             status: status || "Draft",
+            contentPdfUrl,
+            contentPdfName,
+            embeddingStatus: 'Pending',
         });
+        if (coursePdf) {
+            courseDoc.contentVectorCollectionName = `course-${courseDoc._id}`;
+        }
+        const newCourse = await courseDoc.save();
+
+        if (coursePdf) {
+            try {
+                await processCoursePdfUpload(newCourse._id.toString(), coursePdf.tempFilePath);
+                newCourse.embeddingStatus = 'Processed';
+                newCourse.embeddingProcessedAt = new Date();
+                await newCourse.save();
+            } catch (pdfError) {
+                console.error('Course PDF embedding failed:', pdfError);
+                newCourse.embeddingStatus = 'Failed';
+                await newCourse.save();
+            }
+        }
 
         await User.findByIdAndUpdate(instructorId, {
             $push: { courses: newCourse._id }
@@ -157,6 +187,23 @@ const EditCourse = async (req, res) => {
             const thumbnail = req.files.thumbnailImage
             const thumbnailImage = await imageUploder(thumbnail.tempFilePath, process.env.COURSE_THUMBNAIL_FOLDER_NAME)
             course.thumbnail = thumbnailImage.secure_url
+        }
+
+        if (req.files && req.files.coursePdf) {
+            const coursePdf = req.files.coursePdf;
+            const pdfUpload = await imageUploder(coursePdf.tempFilePath, process.env.COURSE_PDF_FOLDER_NAME || process.env.COURSE_THUMBNAIL_FOLDER_NAME);
+            course.contentPdfUrl = pdfUpload.secure_url;
+            course.contentPdfName = coursePdf.name;
+            course.contentVectorCollectionName = `course-${course._id}`;
+            
+            try {
+                await processCoursePdfUpload(course._id.toString(), coursePdf.tempFilePath);
+                course.embeddingStatus = 'Processed';
+                course.embeddingProcessedAt = new Date();
+            } catch (pdfError) {
+                console.error('Course PDF embedding failed during edit:', pdfError);
+                course.embeddingStatus = 'Failed';
+            }
         }
 
         for (const key in updates) {
@@ -313,4 +360,28 @@ const updateCourseProgress = async (req, res) => {
     }
 }
 
-module.exports = { CreateCourse, getAllCourses, GetOneCourseAllDetails, EditCourse, DeleteCourse, getFullCourseDetails, updateCourseProgress, getInstructorCourses };
+const AskCourseQuestion = async (req, res) => {
+    console.log("AskCourseQuestion controller hit. Body:", req.body);
+    try {
+        const { courseId, question } = req.body;
+        if (!courseId || !question) {
+            return res.status(422).json({ success: false, message: 'courseId and question are required' });
+        }
+
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ success: false, message: 'Course not found' });
+        }
+        if (!course.contentPdfUrl) {
+            return res.status(400).json({ success: false, message: 'No course PDF content is available for this course.' });
+        }
+
+        const aiResponse = await answerCourseQuestion(courseId.toString(), question);
+        return res.status(200).json({ success: true, data: aiResponse });
+    } catch (error) {
+        console.error('AskCourseQuestion ERROR:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+module.exports = { CreateCourse, getAllCourses, GetOneCourseAllDetails, EditCourse, DeleteCourse, getFullCourseDetails, updateCourseProgress, getInstructorCourses, AskCourseQuestion };

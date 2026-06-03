@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { isInstructor, auth, isStudent, isAdmin } = require('../middleware/auth');
-const { CreateCourse, getAllCourses, GetOneCourseAllDetails, EditCourse, DeleteCourse, getFullCourseDetails, updateCourseProgress } = require('../controllers/CourseController');
+const { CreateCourse, getAllCourses, GetOneCourseAllDetails, EditCourse, DeleteCourse, getFullCourseDetails, updateCourseProgress, AskCourseQuestion } = require('../controllers/CourseController');
 const { CreateSection, DeleteSection, UpdateSection } = require('../controllers/SectionController');
 const { CreateSubSection, DeleteSubSection, UpdateSubSection } = require('../controllers/SubSectionController');
 const { CreateCatagory, getCatgoryPageDetails, ShowAllCatagory } = require('../controllers/Catagory');
@@ -25,6 +25,7 @@ router.put('/updatesubsection/:subSectionId', auth, isInstructor, UpdateSubSecti
 router.post('/editcourse', auth, isInstructor, EditCourse); // Added editCourse route
 router.post('/getFullCourseDetails', auth, getFullCourseDetails);
 router.post('/updateCourseProgress', auth, isStudent, updateCourseProgress);
+router.post('/askcoursequestion', auth, isStudent, AskCourseQuestion);
 
 
 router.delete('/deletesection', auth, isInstructor, DeleteSection);

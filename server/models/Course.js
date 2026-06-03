@@ -36,6 +36,23 @@ const CourseSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    contentPdfUrl: {
+        type: String,
+    },
+    contentPdfName: {
+        type: String,
+    },
+    contentVectorCollectionName: {
+        type: String,
+    },
+    embeddingStatus: {
+        type: String,
+        enum: ["Pending", "Processed", "Failed"],
+        default: "Pending",
+    },
+    embeddingProcessedAt: {
+        type: Date,
+    },
     price: {
         type: Number,
         required: true
