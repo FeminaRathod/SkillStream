@@ -21,12 +21,9 @@ app.use(require('cookie-parser')());
 app.use(
     cors({
         origin: [
-            "https://skillstream-edtech-wc3k.vercel.app",
-            "https://edtech-frontend-zznw.onrender.com",
-            "https://edtech-frontend-9i9r.onrender.com",
-            "https://edtech-frontend-9i92.onrender.com",
             "http://localhost:5175",
-            "http://localhost:5173"
+            "http://localhost:5173",
+            "https://skill-stream-aztd.vercel.app"
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true,
