@@ -23,7 +23,7 @@ app.use(
         origin: [
             "http://localhost:5175",
             "http://localhost:5173",
-            "https://skill-stream-37gd-2rvc37gw6-feminaarathod-3418s-projects.vercel.app/"
+            "https://skill-stream-37gd-2rvc37gw6-feminaarathod-3418s-projects.vercel.app"
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true,
