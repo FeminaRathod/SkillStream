@@ -1,3 +1,6 @@
+const http = require('http');
+const https = require('https');
+const { URL } = require('url');
 const { genAI, getOrCreateCollection, getCollection } = require('../config/ai');
 const { extractTextFromPdf, createTextChunks } = require('./pdfUtils');
 
@@ -21,20 +24,43 @@ const generateEmbedding = async (text) => {
     return result.embedding.values;
 };
 
-const processCoursePdfUpload = async (courseId, pdfFilePath) => {
-    ensureGeminiConfigured();
-    const text = await extractTextFromPdf(pdfFilePath);
-    if (!text || !text.trim()) {
+const downloadPdfBuffer = (pdfUrl) => new Promise((resolve, reject) => {
+    const parsedUrl = new URL(pdfUrl);
+    const transport = parsedUrl.protocol === 'http:' ? http : https;
+
+    transport.get(parsedUrl, (response) => {
+        if (response.statusCode && response.statusCode >= 400) {
+            reject(new Error(`Failed to download PDF from URL: ${response.statusCode}`));
+            response.resume();
+            return;
+        }
+
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+    }).on('error', reject);
+});
+
+const extractTextFromPdfUrl = async (pdfUrl) => {
+    const dataBuffer = await downloadPdfBuffer(pdfUrl);
+    const pdf = require('pdf-parse');
+    const data = await pdf(dataBuffer);
+    return (data && data.text) ? data.text : '';
+};
+
+const processCoursePdfText = async (courseId, text, collectionName) => {
+    const normalizedText = typeof text === 'string' ? text : '';
+    if (!normalizedText.trim()) {
         throw new Error('Uploaded PDF did not contain extractable text.');
     }
 
-    const chunks = createTextChunks(text, MAX_CHUNK_SIZE, CHUNK_OVERLAP);
+    const chunks = createTextChunks(normalizedText, MAX_CHUNK_SIZE, CHUNK_OVERLAP);
     if (!chunks.length) {
         throw new Error('Could not split PDF text into chunks.');
     }
 
-    const collectionName = `course-${courseId}`;
-    const collection = await getOrCreateCollection(collectionName);
+    const resolvedCollectionName = collectionName || `course-${courseId}`;
+    const collection = await getOrCreateCollection(resolvedCollectionName);
 
     const ids = chunks.map((_, index) => `${courseId}-${index}`);
     const embeddings = [];
@@ -58,15 +84,34 @@ const processCoursePdfUpload = async (courseId, pdfFilePath) => {
         })),
     });
 
-    return { collectionName, chunkCount: chunks.length };
+    return { collectionName: resolvedCollectionName, chunkCount: chunks.length };
 };
 
-const answerCourseQuestion = async (courseId, question, topK = 5) => {
+const processCoursePdfUpload = async (courseId, pdfFilePath) => {
     ensureGeminiConfigured();
-    const collectionName = `course-${courseId}`;
-    const collection = await getCollection(collectionName);
+    const text = await extractTextFromPdf(pdfFilePath);
+    return await processCoursePdfText(courseId, text, `course-${courseId}`);
+};
+
+const processCoursePdfFromUrl = async (courseId, pdfUrl, collectionName) => {
+    ensureGeminiConfigured();
+    const text = await extractTextFromPdfUrl(pdfUrl);
+    return await processCoursePdfText(courseId, text, collectionName || `course-${courseId}`);
+};
+
+const answerCourseQuestion = async (course, question, topK = 5) => {
+    ensureGeminiConfigured();
+    const courseId = course?._id?.toString ? course._id.toString() : String(course);
+    const collectionName = course?.contentVectorCollectionName || `course-${courseId}`;
+    let collection = await getCollection(collectionName);
+
+    if (!collection && course?.contentPdfUrl) {
+        await processCoursePdfFromUrl(courseId, course.contentPdfUrl, collectionName);
+        collection = await getCollection(collectionName);
+    }
+
     if (!collection) {
-        throw new Error('No vector collection found for this course.');
+        throw new Error('No vector collection found for this course. Re-upload the PDF or retry after embeddings finish processing.');
     }
 
     const questionEmbedding = await generateEmbedding(question);
@@ -124,4 +169,4 @@ Answer:`;
     };
 };
 
-module.exports = { processCoursePdfUpload, answerCourseQuestion };
+module.exports = { processCoursePdfUpload, processCoursePdfFromUrl, answerCourseQuestion };

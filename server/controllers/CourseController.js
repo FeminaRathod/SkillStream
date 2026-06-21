@@ -376,7 +376,7 @@ const AskCourseQuestion = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No course PDF content is available for this course.' });
         }
 
-        const aiResponse = await answerCourseQuestion(courseId.toString(), question);
+        const aiResponse = await answerCourseQuestion(course, question);
         return res.status(200).json({ success: true, data: aiResponse });
     } catch (error) {
         console.error('AskCourseQuestion ERROR:', error);
